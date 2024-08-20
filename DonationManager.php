@@ -1,5 +1,6 @@
 <?php
 require_once 'Database.php';
+require_once 'helpers.php';
 
 class DonationManager {
     private $pdo;
@@ -16,8 +17,7 @@ class DonationManager {
 
         if (!$charity) {
             echo "Error: Charity ID $charityId does not exist. Cannot add donation.\n";
-            echo "Press any key to go back to the main menu.\n";
-            fgets(STDIN); // Wait for user input to return
+            waitForKeypress();
             return;
         }
 
@@ -26,8 +26,7 @@ class DonationManager {
         $dateTime = (new DateTime())->format('Y-m-d H:i:s');
         $stmt->execute([$donorName, $amount, $charityId, $dateTime]);
         echo "Donation added successfully with ID: " . $this->pdo->lastInsertId() . "\n";
-        echo "Press any key to go back to the main menu.\n";
-        fgets(STDIN); // Wait for user input to return
+        waitForKeypress();
     }
 
     public function viewDonations() {
@@ -36,8 +35,7 @@ class DonationManager {
     
         if (count($donations) == 0) {
             echo "There are no donations yet.\n";
-            echo "Press any key to go back to the main menu.\n";
-            fgets(STDIN); // Wait for user input to return
+            waitForKeypress();
             return;
         }
     
@@ -47,7 +45,6 @@ class DonationManager {
             echo "ID: {$donation['id']}, Donor: {$donation['donor_name']}, Amount: {$donation['amount']}, Charity ID: {$donation['charity_id']}, Date: {$donation['date_time']}\n";
         }
     
-        echo "Press any key to go back to the main menu.\n";
-        fgets(STDIN);
+        waitForKeypress();
     }    
 }

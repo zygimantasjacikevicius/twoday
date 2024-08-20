@@ -1,5 +1,6 @@
 <?php
 require_once 'Database.php';
+require_once 'helpers.php';
 
 class CharityManager {
     private $pdo;
@@ -18,6 +19,7 @@ class CharityManager {
         // Check for duplicate charity names
         if ($this->charityExistsByName($name)) {
             echo "Charity with the name '$name' already exists. Cannot add duplicate.\n";
+            waitForKeypress();
             return;
         }
     
@@ -25,8 +27,7 @@ class CharityManager {
         $stmt = $this->pdo->prepare("INSERT INTO charities (name, representative_email) VALUES (?, ?)");
         $stmt->execute([$name, $email]);
         echo "Charity added successfully with ID: " . $this->pdo->lastInsertId() . "\n";
-        echo "Press any key to go back to the main menu.\n";
-        fgets(STDIN); // Wait for user input to return
+        waitForKeypress();
     }    
 
     public function editCharity() {
@@ -36,8 +37,7 @@ class CharityManager {
     
         if (count($charities) == 0) {
             echo "No charities available to edit.\n";
-            echo "Press any key to go back to the main menu.\n";
-            fgets(STDIN); // Wait for user input to return
+            waitForKeypress();
         }
     
         // Display the list of charities with IDs
@@ -108,8 +108,7 @@ class CharityManager {
         }
     
         echo "Charity updated successfully.\n";
-        echo "Press any key to go back to the main menu.\n";
-        fgets(STDIN); // Wait for user input to return
+        waitForKeypress();
     }
     
     private function updateCharityName($id, $name) {
@@ -134,8 +133,8 @@ class CharityManager {
     
         if (count($charities) == 0) {
             echo "There are no charities to delete.\n";
-            echo "Press any key to go back to the main menu.\n";
-            fgets(STDIN); // Wait for user input to return
+            waitForKeypress();
+            return;
         }
     
         // Display the list of charities with IDs
@@ -155,17 +154,27 @@ class CharityManager {
     
         if (!$charity) {
             echo "Charity with ID $id not found.\n";
-            echo "Press any key to go back to the main menu.\n";
-            fgets(STDIN); // Wait for user input to return
+            waitForKeypress();
+            return;
+        }
+    
+        // Check if there are donations for this charity
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM donations WHERE charity_id = ?");
+        $stmt->execute([$id]);
+        $donationCount = $stmt->fetchColumn();
+    
+        if ($donationCount > 0) {
+            echo "Cannot delete charity with ID $id because it has associated donations.\n";
+            waitForKeypress();
+            return;
         }
     
         // Proceed with deletion
         $stmt = $this->pdo->prepare("DELETE FROM charities WHERE id = ?");
         $stmt->execute([$id]);
         echo "Charity deleted successfully.\n";
-        echo "Press any key to go back to the main menu.\n";
-        fgets(STDIN); // Wait for user input to return
-    }
+        waitForKeypress();
+    }    
     
     public function viewCharities() {
         $stmt = $this->pdo->query("SELECT id, name, representative_email FROM charities");
@@ -173,8 +182,7 @@ class CharityManager {
     
         if (count($charities) == 0) {
             echo "There are no charities yet.\n";
-            echo "Press any key to go back to the main menu.\n";
-            fgets(STDIN); // Wait for user input to return
+            waitForKeypress();
             return;
         }
     
@@ -184,9 +192,7 @@ class CharityManager {
             echo "ID: {$charity['id']}, Name: {$charity['name']}, Email: {$charity['representative_email']}\n";
         }
     
-        // Ask the user to press any key to go back
-        echo "Press any key to go back to the main menu.\n";
-        fgets(STDIN); // Wait for user input to return
+        waitForKeypress();
     }    
 
     public function importFromCSV($filePath) {
@@ -245,8 +251,7 @@ class CharityManager {
         // Close the file after reading
         fclose($file);
         echo "CSV import completed.\n";
-        echo "Press any key to go back to the main menu.\n";
-        fgets(STDIN); // Wait for user input to return
+        waitForKeypress();
     }
         
 }
