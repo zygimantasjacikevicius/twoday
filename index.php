@@ -12,6 +12,11 @@ Database::initialize();
 $charityManager = new CharityManager();
 $donationManager = new DonationManager();
 
+function getInput($prompt) {
+    echo $prompt;
+    return trim(fgets(STDIN));
+}
+
 while (true) { // Keep showing the menu until the user decides to exit
     echo "Charity & Donation CLI\n";
     echo "1. Add Charity\n";
@@ -27,10 +32,8 @@ while (true) { // Keep showing the menu until the user decides to exit
 
     switch ($choice) {
         case 1:
-            echo "Enter charity name: ";
-            $name = trim(fgets(STDIN));
-            echo "Enter representative email: ";
-            $email = trim(fgets(STDIN));
+            $name = getInput("Enter charity name: ");
+            $email = getInput("Enter representative email: ");
             if (Validator::isValidEmail($email)) {
                 $charityManager->addCharity($name, $email);
             } else {

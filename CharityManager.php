@@ -10,9 +10,14 @@ class CharityManager {
     }
 
     public function charityExistsByName($name) {
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM charities WHERE name = ?");
-        $stmt->execute([$name]);
-        return $stmt->fetchColumn() > 0;  // Returns true if the charity name exists
+        try {
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM charities WHERE name = ?");
+            $stmt->execute([$name]);
+            return $stmt->fetchColumn() > 0;
+        } catch (PDOException $e) {
+            echo "Error checking charity name: " . $e->getMessage() . "\n";
+            return false;
+        }
     }
 
     public function addCharity($name, $email) {
@@ -20,14 +25,21 @@ class CharityManager {
         if ($this->charityExistsByName($name)) {
             echo "Charity with the name '$name' already exists. Cannot add duplicate.\n";
             waitForKeypress();
-            return;
+            return false;
         }
-    
-        // Proceed with adding if no duplicates
-        $stmt = $this->pdo->prepare("INSERT INTO charities (name, representative_email) VALUES (?, ?)");
-        $stmt->execute([$name, $email]);
-        echo "Charity added successfully with ID: " . $this->pdo->lastInsertId() . "\n";
-        waitForKeypress();
+
+        try {
+            // Proceed with adding if no duplicates
+            $stmt = $this->pdo->prepare("INSERT INTO charities (name, representative_email) VALUES (?, ?)");
+            $stmt->execute([$name, $email]);
+            echo "Charity added successfully with ID: " . $this->pdo->lastInsertId() . "\n";
+            waitForKeypress();
+            return true;
+        } catch (PDOException $e) {
+            echo "Error adding charity: " . $e->getMessage() . "\n";
+            waitForKeypress();
+            return false;
+        }
     }    
 
     public function editCharity() {
@@ -130,49 +142,38 @@ class CharityManager {
         // Show all charities
         $stmt = $this->pdo->query("SELECT id, name, representative_email FROM charities");
         $charities = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
         if (count($charities) == 0) {
             echo "There are no charities to delete.\n";
             waitForKeypress();
             return;
         }
-    
+
         // Display the list of charities with IDs
         echo "Charities:\n";
         foreach ($charities as $charity) {
             echo "ID: {$charity['id']}, Name: {$charity['name']}, Email: {$charity['representative_email']}\n";
         }
-    
-        // Ask the user to select a charity ID to delete
+
         echo "Enter the ID of the charity you want to delete: ";
         $id = trim(fgets(STDIN));
-    
-        // Check if the ID exists
-        $stmt = $this->pdo->prepare("SELECT id FROM charities WHERE id = ?");
-        $stmt->execute([$id]);
-        $charity = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-        if (!$charity) {
-            echo "Charity with ID $id not found.\n";
-            waitForKeypress();
-            return;
-        }
-    
-        // Check if there are donations for this charity
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM donations WHERE charity_id = ?");
-        $stmt->execute([$id]);
-        $donationCount = $stmt->fetchColumn();
-    
-        if ($donationCount > 0) {
+
+        // Check if charity exists and donations associated
+        if ($this->charityHasDonations($id)) {
             echo "Cannot delete charity with ID $id because it has associated donations.\n";
             waitForKeypress();
             return;
         }
-    
-        // Proceed with deletion
-        $stmt = $this->pdo->prepare("DELETE FROM charities WHERE id = ?");
-        $stmt->execute([$id]);
-        echo "Charity deleted successfully.\n";
+
+        try {
+            // Proceed with deletion
+            $stmt = $this->pdo->prepare("DELETE FROM charities WHERE id = ?");
+            $stmt->execute([$id]);
+            echo "Charity deleted successfully.\n";
+        } catch (PDOException $e) {
+            echo "Error deleting charity: " . $e->getMessage() . "\n";
+        }
+
         waitForKeypress();
     }    
     
@@ -252,6 +253,12 @@ class CharityManager {
         fclose($file);
         echo "CSV import completed.\n";
         waitForKeypress();
+    }
+
+    private function charityHasDonations($charityId) {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM donations WHERE charity_id = ?");
+        $stmt->execute([$charityId]);
+        return $stmt->fetchColumn() > 0;
     }
         
 }
